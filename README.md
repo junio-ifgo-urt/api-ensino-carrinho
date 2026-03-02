@@ -28,6 +28,23 @@ O projeto está organizado em ramos (branches) para que o aluno acompanhe a evol
 * **Logs:** Java Util Logging (JUL)
 
 ---
+## 🛣️ Endpoints da API
+
+| Método | Caminho | Descrição |
+| :--- | :--- | :--- |
+| `GET` | `/produtos` | Listagem completa |
+| `GET` | `/produtos/{id}` | Detalhes do produto |
+| `POST` | `/produtos` | Cadastro de novo item |
+| `PUT` | `/produtos/{id}` | Atualização total |
+| `DELETE` | `/produtos/{id}` | Exclusão do sistema |
+| `PATCH` | `/produtos/{id}/baixar-estoque` | Lógica de baixa de estoque |
+
+## 🎓 Conceitos Aplicados na v2
+
+* **Mapeamento de Entidades:** Transformando classes Java em tabelas MySQL através do Hibernate.
+* **Injeção de Dependências:** Desacoplando as camadas de **Controller**, **Service** e **Repository**.
+* **Tratamento de Exceções:** Uso de exceções personalizadas para regras de negócio (como estoque insuficiente).
+* **Integridade Transacional:** Uso da anotação `@Transactional` para garantir que operações no banco sejam atômicas.
 
 ## 🚀 Como Executar a Versão 2 (JPA)
 
@@ -36,3 +53,8 @@ O projeto está organizado em ramos (branches) para que o aluno acompanhe a evol
 git clone [https://github.com/junio-ifgo-urt/api-ensino-carrinho.git](https://github.com/junio-ifgo-urt/api-ensino-carrinho.git)
 cd api-ensino-carrinho
 git checkout versao-2-jpa
+
+## 👨‍🏫 Autor
+
+**Prof. Junio Lima**
+*IF Goiano - Campus Urutaí - IFMaker
