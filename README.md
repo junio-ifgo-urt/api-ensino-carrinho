@@ -5,7 +5,7 @@
 ![MySQL](https://img.shields.io/badge/mysql-%2300f.svg?style=for-the-badge&logo=mysql&logoColor=white)
 ![Hibernate](https://img.shields.io/badge/Hibernate-59666C?style=for-the-badge&logo=Hibernate&logoColor=white)
 
-API didática para o ensino de **Desenvolvimento Web com Java**, focada em evolução incremental de funcionalidades e boas práticas.
+API didática para o ensino de **Desenvolvimento de uma API Rest com Java**, focada em evolução incremental de funcionalidades e boas práticas.
 
 
 
