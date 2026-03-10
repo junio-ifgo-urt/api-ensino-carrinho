@@ -1,15 +1,38 @@
 package br.ifg.urt.carrinho_api.model;
 
+import java.io.Serializable;
+
 import br.ifg.urt.carrinho_api.exception.EstoqueInsuficienteException;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
-public class Produto {
+@Entity // Indica que esta classe é uma tabela no banco de dados
+@Table(name = "produtos") // Nome da tabela (opcional, mas boa prática)
+public class Produto implements Serializable { // Adicionado Serializable (boa prática para JPA)
 
+    private static final long serialVersionUID = 1L;
+
+    @Id // Define a chave primária
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento 
     private Long id;
+
+    @Column(nullable = false, length = 100) // Campo obrigatório e com limite de caracteres
     private String nome;
+
+    @Column(length = 255)
     private String descricao;
+
+    @Column(nullable = false)
     private Double preco;
+
+    @Column(nullable = false)
     private Integer estoque;
 
+    // O construtor padrão é OBRIGATÓRIO para o JPA
     public Produto() {
     }
     
