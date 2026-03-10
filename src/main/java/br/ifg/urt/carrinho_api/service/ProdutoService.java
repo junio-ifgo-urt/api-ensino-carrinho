@@ -14,17 +14,21 @@ public class ProdutoService {
 
     private static final Logger logger = Logger.getLogger(ProdutoService.class.getName());
 
-    @Autowired
-    private ProdutoRepository repository; // Agora usamos o Repository real
+    // 1. Declarar como final
+    private final ProdutoRepository repository;
 
+    // 2. Injeção explícita via construtor (O Spring injeta automaticamente se houver apenas um construtor)
+    public ProdutoService(ProdutoRepository repository) {
+        this.repository = repository;
+    }
+
+    /**
+     * Utiliza o método default do Repository para simplificar a busca.
+     * Note como o log de erro agora é centralizado pela exceção específica.
+     */
     public Produto findById(Long id) {
         logger.info("Buscando produto no banco com ID: " + id);
-
-        return repository.findById(id)
-            .orElseThrow(() -> {
-                logger.warning("Produto ID " + id + " não encontrado no banco.");
-                return new RuntimeException("Produto não encontrado");
-            });
+        return repository.findByIdOrThrow(id);
     }
 
     public List<Produto> findAll() {
@@ -43,7 +47,7 @@ public class ProdutoService {
         logger.info("Atualizando produto ID: " + produto.getId());
 
         // Verificamos se existe antes de atualizar
-        Produto existing = findById(produto.getId());
+        Produto existing = repository.findByIdOrThrow(produto.getId());
         
         existing.setNome(produto.getNome());
         existing.setPreco(produto.getPreco());
@@ -56,20 +60,28 @@ public class ProdutoService {
 
     public void delete(Long id) {
         logger.info("Removendo produto ID: " + id);
-        Produto existing = findById(id);
+        // Garante a existência antes de tentar deletar
+        Produto existing = repository.findByIdOrThrow(id);
         repository.delete(existing);
     }
 
-    @Transactional // Importante: Garante que a operação de baixa seja segura
-    public void baixarEstoque(Long id, Integer qtd) {
-        Produto p = findById(id);
-        logger.info("Baixa de estoque no banco: " + p.getNome() + " | Qtd: " + qtd);
+    // @Transactional garante que, se algo der errado, o banco de dados voltará ao estado 
+    // anterior (Rollback), evitando dados corrompidos
+    @Transactional 
+    public Produto baixarEstoque(Long id, Integer qtd) {
+        // Fluxo limpo: Busca -> Processa Regra no Modelo -> Persiste
+        Produto p = repository.findByIdOrThrow(id);
         
+        logger.info("Baixa de estoque: " + p.getNome() + " | Qtd: " + qtd);
+        // A lógica de negócio reside na Entidade (Modelo Rico)
         p.baixarEstoque(qtd); 
-        
-        // Ao salvar um objeto já existente, o JPA executa um UPDATE
-        repository.save(p);
-        
-        logger.info("Estoque atualizado no banco de dados.");
+        // Salvamos o produto atualizado no banco de dados
+        Produto produtoAtualizado = repository.save(p);
+        // O log de sucesso é registrado após a confirmação da atualização no banco, garantindo que o estoque foi realmente atualizado
+        logger.info("Estoque atualizado com sucesso no banco de dados. Novo estoque: " + produtoAtualizado.getEstoque());
+        // retorna o produto atualizado para o controller, que por sua vez retorna o JSON atualizado para o cliente
+        return produtoAtualizado;
     }
+
+
 }

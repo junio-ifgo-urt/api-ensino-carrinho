@@ -10,17 +10,17 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
-@Entity // 1. Indica que esta classe é uma tabela no banco de dados
-@Table(name = "produtos") // 2. Nome da tabela (opcional, mas boa prática)
-public class Produto implements Serializable { // 3. Adicionado Serializable (boa prática para JPA)
+@Entity // Indica que esta classe é uma tabela no banco de dados
+@Table(name = "produtos") // Nome da tabela (opcional, mas boa prática)
+public class Produto implements Serializable { // Adicionado Serializable (boa prática para JPA)
 
     private static final long serialVersionUID = 1L;
 
-    @Id // 4. Define a chave primária
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // 5. Auto-incremento (1, 2, 3...)
+    @Id // Define a chave primária
+    @GeneratedValue(strategy = GenerationType.IDENTITY) // Auto-incremento 
     private Long id;
 
-    @Column(nullable = false, length = 100) // 6. Campo obrigatório e com limite de caracteres
+    @Column(nullable = false, length = 100) // Campo obrigatório e com limite de caracteres
     private String nome;
 
     @Column(length = 255)
