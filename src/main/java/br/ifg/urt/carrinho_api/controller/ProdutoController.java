@@ -1,25 +1,23 @@
 package br.ifg.urt.carrinho_api.controller;
 
 import java.util.List;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
 
-import br.ifg.urt.carrinho_api.model.Produto;
+import br.ifg.urt.carrinho_api.dto.request.ProdutoRequestDTO;
+import br.ifg.urt.carrinho_api.dto.response.ProdutoEstoqueResponseDTO;
+import br.ifg.urt.carrinho_api.dto.response.ProdutoInventarioDTO;
+import br.ifg.urt.carrinho_api.dto.response.ProdutoResponseDTO;
 import br.ifg.urt.carrinho_api.service.ProdutoService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 
 @RestController
 @RequestMapping("/produtos")
+@Validated // para validar @RequestParam e @PathVariable
 public class ProdutoController {
 
     private final ProdutoService service;
@@ -28,50 +26,81 @@ public class ProdutoController {
         this.service = service;
     }
 
-    // 200 OK - Padrão para listagens
+    // 200 OK - Agora retorna uma lista de DTOs (apenas nome e preço)
     @GetMapping
-    public ResponseEntity<List<Produto>> buscarTodos() {
-        List<Produto> produtos = service.findAll();
-        return ResponseEntity.ok(produtos);
+    public ResponseEntity<List<ProdutoResponseDTO>> buscarTodos() {
+        return ResponseEntity.ok(service.findAll());
     }
 
-    // 200 OK - Padrão para busca individual bem-sucedida
+    // 200 OK - Busca individual retornando DTO
     @GetMapping("/{id}")
-    public ResponseEntity<Produto> buscarPorId(@PathVariable Long id) {
-        Produto produto = service.findById(id);
-        return ResponseEntity.ok(produto);
+    public ResponseEntity<ProdutoResponseDTO> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(service.findById(id));
     }
 
-    // 201 Created - Padrão para criação de recursos
+    // 200 OK - Busca individual retornando DTO específico de estoque (apenas nome e estoque)
+    // Rota: GET /produtos/{id}/estoque
+    @GetMapping("/{id}/estoque")
+    public ResponseEntity<ProdutoEstoqueResponseDTO> buscarEstoque(@PathVariable Long id) {
+        return ResponseEntity.ok(service.getEstoque(id));
+    }
+
+    // 200 OK - Busca individual retornando DTO de inventário (com campo calculado)
+    // Rota: GET /produtos/{id}/inventario
+    @GetMapping("/{id}/inventario")
+    public ResponseEntity<ProdutoInventarioDTO> buscarInventario(@PathVariable Long id) {
+        // Chamamos o service, que usa o mapper, que por sua vez chama o cálculo da entidade
+        ProdutoInventarioDTO inventario = service.getRelatorioInventario(id);
+        return ResponseEntity.ok(inventario);
+    }
+
+    // 201 Created - Recebe ProdutoRequestDTO (corpo da requisição)
     @PostMapping
-    public ResponseEntity<Produto> criar(@RequestBody Produto produto) {
-        Produto novoProduto = service.create(produto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(novoProduto);
+    public ResponseEntity<ProdutoResponseDTO> criar(@Valid @RequestBody ProdutoRequestDTO dto) {
+        ProdutoResponseDTO novo = service.create(dto);
+        return ResponseEntity.status(HttpStatus.CREATED).body(novo);
     }
 
-    // 200 OK - Recurso atualizado com sucesso
+    // 200 OK - Atualização passando DTO
     @PutMapping("/{id}")
-    public ResponseEntity<Produto> atualizar(@PathVariable Long id, @RequestBody Produto produto) {
-        produto.setId(id);
-        Produto produtoAtualizado = service.update(produto);
-        return ResponseEntity.ok(produtoAtualizado);
+    public ResponseEntity<ProdutoResponseDTO> atualizar(
+            @PathVariable Long id, 
+            @Valid @RequestBody ProdutoRequestDTO dto) {
+        
+        // Note que não setamos mais o ID aqui, o Service fará isso
+        return ResponseEntity.ok(service.update(id, dto));
     }
 
-    // 204 No Content - Padrão para remoção (sucesso sem corpo de resposta)
+    // 204 No Content - Permanece igual (não retorna corpo)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletar(@PathVariable Long id) {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
 
-    // Endpoint para realizar a baixa de estoque
-    // Rota: PATCH /produtos/{id}/baixar-estoque?qtd=5
+    // PATCH - Realiza a baixa de estoque e retorna o DTO atualizado
     @PatchMapping("/{id}/baixar-estoque")
-    public ResponseEntity<Produto> baixarEstoque(
+    public ResponseEntity<ProdutoEstoqueResponseDTO> baixarEstoque(
             @PathVariable Long id, 
-            @RequestParam Integer quantidade) {
+            @NotNull(message = "A quantidade é obrigatória") 
+            @Min(value = 1, message = "A quantidade mínima para baixa é 1 unidade")
+            Integer quantidade) {
         
-        Produto produtoAtualizado = service.baixarEstoque(id, quantidade);
-        return ResponseEntity.ok(produtoAtualizado); // Retorna 200 OK com o JSON 
+        return ResponseEntity.ok(service.baixarEstoque(id, quantidade));
     }
+
+    // PATCH - Aplica desconto global no preço do produto
+    // path: /api/v1/produtos/{id}/desconto?percentual=20
+    @PatchMapping("/{id}/desconto")
+    public ResponseEntity<Void> aplicarDesconto(
+            @PathVariable Long id, 
+            @RequestParam Double percentual) {
+        
+        service.aplicarDescontoGlobal(id, percentual);
+        
+        // Retornamos 204 No Content pois a operação foi um sucesso, 
+        // mas não há corpo na resposta.
+        return ResponseEntity.noContent().build();
+    }
+    
 }

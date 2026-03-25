@@ -2,86 +2,113 @@ package br.ifg.urt.carrinho_api.service;
 
 import java.util.List;
 import java.util.logging.Logger;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import br.ifg.urt.carrinho_api.dto.request.ProdutoRequestDTO;
+import br.ifg.urt.carrinho_api.dto.response.ProdutoEstoqueResponseDTO;
+import br.ifg.urt.carrinho_api.dto.response.ProdutoInventarioDTO;
+import br.ifg.urt.carrinho_api.dto.response.ProdutoResponseDTO;
+import br.ifg.urt.carrinho_api.mapper.ProdutoMapper; // Import do Mapper
 import br.ifg.urt.carrinho_api.model.Produto;
 import br.ifg.urt.carrinho_api.repository.ProdutoRepository;
+
 
 @Service
 public class ProdutoService {
 
     private static final Logger logger = Logger.getLogger(ProdutoService.class.getName());
 
-    // 1. Declarar como final
     private final ProdutoRepository repository;
+    private final ProdutoMapper mapper; // Injetando o Mapper
 
-    // 2. Injeção explícita via construtor (O Spring injeta automaticamente se houver apenas um construtor)
-    public ProdutoService(ProdutoRepository repository) {
+    // Construtor atualizado com o Mapper
+    public ProdutoService(ProdutoRepository repository, ProdutoMapper mapper) {
         this.repository = repository;
+        this.mapper = mapper;
     }
 
-    /**
-     * Utiliza o método default do Repository para simplificar a busca.
-     * Note como o log de erro agora é centralizado pela exceção específica.
-     */
-    public Produto findById(Long id) {
-        logger.info("Buscando produto no banco com ID: " + id);
-        return repository.findByIdOrThrow(id);
+    public ProdutoResponseDTO findById(Long id) {
+        logger.info("Buscando produto ID: " + id);
+        Produto produto = repository.findByIdOrThrow(id);
+        return mapper.toResponseDTO(produto); // Uso do Mapper
     }
 
-    public List<Produto> findAll() {
-        logger.info("Buscando todos os produtos no banco.");
-        return repository.findAll();
-    }
-
-    public Produto create(Produto produto) {
-        logger.info("Salvando novo produto no banco: " + produto.getNome());
-        // O ID agora é gerado pelo MySQL/JPA automaticamente
-        return repository.save(produto);
+    public List<ProdutoResponseDTO> findAll() {
+        logger.info("Listando todos os produtos.");
+        List<Produto> produtos = repository.findAll();
+        // O MapStruct resolve a lista inteira de uma vez
+        return mapper.toResponseDTOList(produtos);
     }
 
     @Transactional
-    public Produto update(Produto produto) {
-        logger.info("Atualizando produto ID: " + produto.getId());
+    public ProdutoResponseDTO create(ProdutoRequestDTO dto) {
+        logger.info("Criando novo produto: " + dto.nome());
+        
+        // Converte RequestDTO -> Entity via Mapper
+        Produto novoProduto = mapper.toEntity(dto);
+        
+        Produto salvo = repository.save(novoProduto);
+        return mapper.toResponseDTO(salvo);
+    }
 
-        // Verificamos se existe antes de atualizar
-        Produto existing = repository.findByIdOrThrow(produto.getId());
+    @Transactional
+    public ProdutoResponseDTO update(Long id, ProdutoRequestDTO dto) {
+        logger.info("Atualizando produto ID: " + id);
+        // Verifica se o produto existe (lança 404 se não)
+        repository.findByIdOrThrow(id);
         
-        existing.setNome(produto.getNome());
-        existing.setPreco(produto.getPreco());
-        existing.setDescricao(produto.getDescricao());
-        existing.setEstoque(produto.getEstoque());
+        // Converte o DTO e seta o ID da URL manualmente
+        Produto produtoParaAtualizar = mapper.toEntity(dto);
+        produtoParaAtualizar.setId(id); 
         
-        // No JPA, o save() serve para criar ou atualizar
-        return repository.save(existing);
+        Produto atualizado = repository.save(produtoParaAtualizar);
+        return mapper.toResponseDTO(atualizado);
     }
 
     public void delete(Long id) {
         logger.info("Removendo produto ID: " + id);
-        // Garante a existência antes de tentar deletar
         Produto existing = repository.findByIdOrThrow(id);
         repository.delete(existing);
     }
 
-    // @Transactional garante que, se algo der errado, o banco de dados voltará ao estado 
-    // anterior (Rollback), evitando dados corrompidos
-    @Transactional 
-    public Produto baixarEstoque(Long id, Integer qtd) {
-        // Fluxo limpo: Busca -> Processa Regra no Modelo -> Persiste
-        Produto p = repository.findByIdOrThrow(id);
-        
-        logger.info("Baixa de estoque: " + p.getNome() + " | Qtd: " + qtd);
-        // A lógica de negócio reside na Entidade (Modelo Rico)
-        p.baixarEstoque(qtd); 
-        // Salvamos o produto atualizado no banco de dados
-        Produto produtoAtualizado = repository.save(p);
-        // O log de sucesso é registrado após a confirmação da atualização no banco, garantindo que o estoque foi realmente atualizado
-        logger.info("Estoque atualizado com sucesso no banco de dados. Novo estoque: " + produtoAtualizado.getEstoque());
-        // retorna o produto atualizado para o controller, que por sua vez retorna o JSON atualizado para o cliente
-        return produtoAtualizado;
+    // Método para obter apenas o estoque (DTO específico)
+    public ProdutoEstoqueResponseDTO getEstoque(Long id) {
+        logger.info("Consultando saldo de estoque do produto ID: " + id);
+        Produto produto = repository.findByIdOrThrow(id);
+        return mapper.toEstoqueDTO(produto); // Reaproveitando o mapeamento!
     }
 
+    // Método para obter relatório de inventário (DTO com campo calculado)
+    public ProdutoInventarioDTO getRelatorioInventario(Long id) {
+        Produto produto = repository.findByIdOrThrow(id);
+        return mapper.toInventarioDTO(produto);
+    }
 
+    @Transactional 
+    public ProdutoEstoqueResponseDTO baixarEstoque(Long id, Integer qtd) {
+        logger.info("Baixa de estoque ID: " + id + " | Qtd: " + qtd);
+        
+        Produto p = repository.findByIdOrThrow(id);
+        p.baixarEstoque(qtd); 
+        
+        Produto produtoAtualizado = repository.save(p);
+        
+        // Agora usamos o novo método do mapper
+        return mapper.toEstoqueDTO(produtoAtualizado);
+    }
+
+    @Transactional
+    public void aplicarDescontoGlobal(Long id, Double percentual) {
+        Produto produto = repository.findByIdOrThrow(id);
+        
+        // MUDANÇA NO SERVICE:
+        // Em vez de fazer: produto.setPreco(produto.getPreco() * 0.9);
+        // O Service delega a regra de negócio para a Entidade/VO
+        produto.atualizarPrecoComPromocao(percentual);
+        
+        repository.save(produto);
+    }
+
+    
 }

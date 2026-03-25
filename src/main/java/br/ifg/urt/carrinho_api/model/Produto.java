@@ -3,7 +3,9 @@ package br.ifg.urt.carrinho_api.model;
 import java.io.Serializable;
 
 import br.ifg.urt.carrinho_api.exception.EstoqueInsuficienteException;
+import br.ifg.urt.carrinho_api.model.vo.Preco;
 import jakarta.persistence.Column;
+import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,8 +28,8 @@ public class Produto implements Serializable { // Adicionado Serializable (boa p
     @Column(length = 255)
     private String descricao;
 
-    @Column(nullable = false)
-    private Double preco;
+    @Embedded // O banco terá as colunas 'preco_valor' e 'preco_moeda'
+    private Preco preco;
 
     @Column(nullable = false)
     private Integer estoque;
@@ -36,7 +38,7 @@ public class Produto implements Serializable { // Adicionado Serializable (boa p
     public Produto() {
     }
     
-    public Produto(Long id, String nome, String descricao, Double preco, Integer estoque) {
+    public Produto(Long id, String nome, String descricao, Preco preco, Integer estoque) {
         this.id = id;
         this.nome = nome;
         this.descricao = descricao;
@@ -68,11 +70,11 @@ public class Produto implements Serializable { // Adicionado Serializable (boa p
         this.descricao = descricao;
     }
 
-    public Double getPreco() {
+    public Preco getPreco() {
         return preco;
     }
 
-    public void setPreco(Double preco) {
+    public void setPreco(Preco preco) {
         this.preco = preco;
     }
 
@@ -82,6 +84,11 @@ public class Produto implements Serializable { // Adicionado Serializable (boa p
 
     public void setEstoque(Integer estoque) {
         this.estoque = estoque;
+    }
+
+    // Método de negócio usando o VO
+    public void atualizarPrecoComPromocao(Double percentual) {
+        this.preco = this.preco.aplicarDesconto(percentual);
     }
 
     public void baixarEstoque(Integer quantidade) {
@@ -100,6 +107,12 @@ public class Produto implements Serializable { // Adicionado Serializable (boa p
 
         // 3. Atualização do estado
         this.estoque -= quantidade;
+    }
+
+    // Método auxiliar para calcular o valor total do estoque (preço * quantidade)
+    public Double getValorTotalEstoque() {
+        if (this.preco == null || this.estoque == null) return 0.0;
+        return this.preco.valor() * this.estoque;
     }
 
 }
