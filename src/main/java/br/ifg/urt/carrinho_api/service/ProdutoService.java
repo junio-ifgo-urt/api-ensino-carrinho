@@ -1,14 +1,16 @@
 package br.ifg.urt.carrinho_api.service;
 
-import java.util.List;
 import java.util.logging.Logger;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import br.ifg.urt.carrinho_api.dto.request.ProdutoRequestDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoEstoqueResponseDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoInventarioDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoResponseDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoRequestDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoEstoqueResponseDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoInventarioDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoResponseDTO;
 import br.ifg.urt.carrinho_api.mapper.ProdutoMapper; // Import do Mapper
 import br.ifg.urt.carrinho_api.model.Produto;
 import br.ifg.urt.carrinho_api.repository.ProdutoRepository;
@@ -34,11 +36,17 @@ public class ProdutoService {
         return mapper.toResponseDTO(produto); // Uso do Mapper
     }
 
-    public List<ProdutoResponseDTO> findAll() {
-        logger.info("Listando todos os produtos.");
-        List<Produto> produtos = repository.findAll();
-        // O MapStruct resolve a lista inteira de uma vez
-        return mapper.toResponseDTOList(produtos);
+    // Busca todos os produto - caso tenha nome no parâmetro é feito a filtragem
+    public Page<ProdutoResponseDTO> findAll(String nome, Pageable pageable) {
+        Page<Produto> pagina;
+
+        if (nome != null && !nome.isBlank()) {
+            pagina = repository.findByNomeContainingIgnoreCase(nome, pageable);
+        } else {
+            pagina = repository.findAll(pageable);
+        }
+
+        return pagina.map(mapper::toResponseDTO);
     }
 
     @Transactional
@@ -94,7 +102,7 @@ public class ProdutoService {
         
         Produto produtoAtualizado = repository.save(p);
         
-        // Agora usamos o novo método do mapper
+        // Usamos o mesmo DTO de estoque para retornar a quantidade atualizada após a baixa
         return mapper.toEstoqueDTO(produtoAtualizado);
     }
 
@@ -102,8 +110,6 @@ public class ProdutoService {
     public void aplicarDescontoGlobal(Long id, Double percentual) {
         Produto produto = repository.findByIdOrThrow(id);
         
-        // MUDANÇA NO SERVICE:
-        // Em vez de fazer: produto.setPreco(produto.getPreco() * 0.9);
         // O Service delega a regra de negócio para a Entidade/VO
         produto.atualizarPrecoComPromocao(percentual);
         

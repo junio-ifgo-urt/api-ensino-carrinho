@@ -1,19 +1,22 @@
 package br.ifg.urt.carrinho_api.controller;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import br.ifg.urt.carrinho_api.dto.request.ProdutoRequestDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoEstoqueResponseDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoInventarioDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoResponseDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoRequestDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoEstoqueResponseDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoInventarioDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoResponseDTO;
 import br.ifg.urt.carrinho_api.exception.ExceptionResponse; // Ajuste o package conforme o seu projeto
 import br.ifg.urt.carrinho_api.service.ProdutoService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.ArraySchema;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -35,17 +38,29 @@ public class ProdutoController {
         this.service = service;
     }
 
+
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    @Operation(summary = "Listar todos os produtos", description = "Retorna uma lista simplificada de produtos.",
+    @Operation(
+        summary = "Listar produtos com paginação e filtro",
+        description = "Retorna uma página de produtos. Permite filtrar por nome e utilizar paginação e ordenação com os parâmetros 'page', 'size' e 'sort'.",
         responses = {
-            @ApiResponse(description = "Sucesso", responseCode = "200", 
-                content = @Content(array = @ArraySchema(schema = @Schema(implementation = ProdutoResponseDTO.class)))),
-            @ApiResponse(description = "Erro Interno", responseCode = "500", 
-                content = @Content(schema = @Schema(implementation = ExceptionResponse.class)))
+            @ApiResponse(
+                description = "Sucesso", responseCode = "200", content = @Content(schema = @Schema(implementation = Page.class))
+            ),
+            @ApiResponse(
+                description = "Erro Interno", responseCode = "500", content = @Content(schema = @Schema(implementation = ExceptionResponse.class))
+            )
         }
     )
-    public ResponseEntity<List<ProdutoResponseDTO>> buscarTodos() {
-        return ResponseEntity.ok(service.findAll());
+    public ResponseEntity<Page<ProdutoResponseDTO>> buscarTodosPorNome(
+            @Parameter(
+                description = "Filtro por nome do produto (busca parcial, ignorando maiúsculas/minúsculas)",
+                example = "mouse"
+            )
+            @RequestParam(required = false) String nome,
+            @PageableDefault(size = 10, sort = "nome") Pageable pageable) {
+
+        return ResponseEntity.ok(service.findAll(nome, pageable));
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)

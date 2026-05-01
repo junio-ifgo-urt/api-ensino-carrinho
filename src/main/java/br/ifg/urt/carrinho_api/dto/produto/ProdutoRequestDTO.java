@@ -1,4 +1,4 @@
-package br.ifg.urt.carrinho_api.dto.request;
+package br.ifg.urt.carrinho_api.dto.produto;
 
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;

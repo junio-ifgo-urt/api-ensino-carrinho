@@ -1,9 +1,9 @@
 package br.ifg.urt.carrinho_api.mapper;
 
-import br.ifg.urt.carrinho_api.dto.request.ProdutoRequestDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoEstoqueResponseDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoInventarioDTO;
-import br.ifg.urt.carrinho_api.dto.response.ProdutoResponseDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoRequestDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoEstoqueResponseDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoInventarioDTO;
+import br.ifg.urt.carrinho_api.dto.produto.ProdutoResponseDTO;
 import br.ifg.urt.carrinho_api.model.Produto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
