@@ -2,6 +2,9 @@ package br.ifg.urt.carrinho_api.service;
 
 import java.util.logging.Logger;
 
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Caching;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -30,6 +33,8 @@ public class ProdutoService {
         this.mapper = mapper;
     }
 
+    // Busca produto por ID - resultado é cacheado para otimizar consultas frequentes
+    @Cacheable(value = "produtos", key = "#id")
     public ProdutoResponseDTO findById(Long id) {
         logger.info("Buscando produto ID: " + id);
         Produto produto = repository.findByIdOrThrow(id);
@@ -37,6 +42,9 @@ public class ProdutoService {
     }
 
     // Busca todos os produto - caso tenha nome no parâmetro é feito a filtragem
+    // O Cacheable é usado para otimizar consultas frequentes de listagem de produtos, especialmente com filtros e paginação
+    @Cacheable(value = "produtosPaginados", 
+               key = "{ #nome, #pageable.pageNumber, #pageable.pageSize, #pageable.sort }")
     public Page<ProdutoResponseDTO> findAll(String nome, Pageable pageable) {
         Page<Produto> pagina;
 
@@ -49,6 +57,7 @@ public class ProdutoService {
         return pagina.map(mapper::toResponseDTO);
     }
 
+    @CacheEvict(value = "produtosPaginados", allEntries = true)
     @Transactional
     public ProdutoResponseDTO create(ProdutoRequestDTO dto) {
         logger.info("Criando novo produto: " + dto.nome());
@@ -60,6 +69,11 @@ public class ProdutoService {
         return mapper.toResponseDTO(salvo);
     }
 
+    // O CacheEvict é usado para limpar o cache do produto após uma atualização, garantindo que consultas futuras obtenham os dados atualizados
+    @Caching(evict = {
+        @CacheEvict(value = "produtos", key = "#id"),
+        @CacheEvict(value = "produtosPaginados", allEntries = true)
+    })
     @Transactional
     public ProdutoResponseDTO update(Long id, ProdutoRequestDTO dto) {
         logger.info("Atualizando produto ID: " + id);
@@ -74,6 +88,11 @@ public class ProdutoService {
         return mapper.toResponseDTO(atualizado);
     }
 
+    // O CacheEvict é usado para limpar o cache do produto e da listagem paginada após a remoção, garantindo que consultas futuras obtenham os dados atualizados
+    @Caching(evict = {
+        @CacheEvict(value = "produtos", key = "#id"),
+        @CacheEvict(value = "produtosPaginados", allEntries = true)
+    })
     public void delete(Long id) {
         logger.info("Removendo produto ID: " + id);
         Produto existing = repository.findByIdOrThrow(id);
@@ -81,6 +100,8 @@ public class ProdutoService {
     }
 
     // Método para obter apenas o estoque (DTO específico)
+    // O Cacheable é usado para otimizar consultas frequentes do estoque, que podem ser feitas por outros serviços (ex: Carrinho)
+    @Cacheable(value = "estoque", key = "#id")
     public ProdutoEstoqueResponseDTO getEstoque(Long id) {
         logger.info("Consultando saldo de estoque do produto ID: " + id);
         Produto produto = repository.findByIdOrThrow(id);
@@ -93,6 +114,12 @@ public class ProdutoService {
         return mapper.toInventarioDTO(produto);
     }
 
+    // O CacheEvict é usado para limpar o cache do produto e do estoque após a baixa, garantindo que consultas futuras obtenham os dados atualizados
+    @Caching(evict = {
+        @CacheEvict(value = "produtos", key = "#id"),
+        @CacheEvict(value = "estoque", key = "#id"),
+        @CacheEvict(value = "produtosPaginados", allEntries = true)
+    })
     @Transactional 
     public ProdutoEstoqueResponseDTO baixarEstoque(Long id, Integer qtd) {
         logger.info("Baixa de estoque ID: " + id + " | Qtd: " + qtd);
@@ -106,6 +133,10 @@ public class ProdutoService {
         return mapper.toEstoqueDTO(produtoAtualizado);
     }
 
+    @Caching(evict = {
+        @CacheEvict(value = "produtos", key = "#id"),
+        @CacheEvict(value = "produtosPaginados", allEntries = true) // Garante o preço novo na lista
+    })
     @Transactional
     public void aplicarDescontoGlobal(Long id, Double percentual) {
         Produto produto = repository.findByIdOrThrow(id);
@@ -118,3 +149,4 @@ public class ProdutoService {
 
     
 }
+

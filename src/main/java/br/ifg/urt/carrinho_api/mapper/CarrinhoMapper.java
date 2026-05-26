@@ -11,6 +11,7 @@ import br.ifg.urt.carrinho_api.model.ItemCarrinho;
 @Mapper(componentModel = "spring")
 public interface CarrinhoMapper {
 
+    @Mapping(source = "cliente.id", target = "clienteId") 
     @Mapping(source = "cliente.nome", target = "clienteNome")
     CarrinhoResponseDTO toResponseDTO(Carrinho carrinho);
 

@@ -38,6 +38,13 @@ public class Produto implements Serializable { // Adicionado Serializable (boa p
     public Produto() {
     }
     
+    // Construtores adicionais para facilitar a criação de objetos em testes ou na aplicação
+    public Produto(Long id, String nome, Preco preco) {
+        this.id = id;
+        this.nome = nome;
+        this.preco = preco;
+    }
+
     public Produto(Long id, String nome, String descricao, Preco preco, Integer estoque) {
         this.id = id;
         this.nome = nome;

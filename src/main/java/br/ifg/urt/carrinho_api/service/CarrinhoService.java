@@ -11,6 +11,9 @@ import br.ifg.urt.carrinho_api.model.Produto;
 import br.ifg.urt.carrinho_api.repository.CarrinhoRepository;
 import br.ifg.urt.carrinho_api.repository.ClienteRepository;
 import br.ifg.urt.carrinho_api.repository.ProdutoRepository;
+
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +38,8 @@ public class CarrinhoService {
         this.carrinhoMapper = carrinhoMapper;
     }
 
+    // O CacheEvict é usado para limpar o cache do carrinho do cliente após uma modificação
+    @CacheEvict(value = "carrinhos", key = "#dto.clienteId()")
     @Transactional
     public CarrinhoResponseDTO adicionarProduto(ItemCarrinhoRequestDTO dto) {
         // 1. Validar se o cliente existe
@@ -59,6 +64,8 @@ public class CarrinhoService {
         return carrinhoMapper.toResponseDTO(salvo);
     }
 
+    // O CacheEvict é usado para limpar o cache do carrinho do cliente após uma modificação
+    @CacheEvict(value = "carrinhos", key = "#clienteId()")
     @Transactional
     public CarrinhoResponseDTO atualizarQuantidade(Long clienteId, AtualizarQuantidadeItemDTO dto) {
         // 1. Busca o carrinho
@@ -76,6 +83,8 @@ public class CarrinhoService {
         return carrinhoMapper.toResponseDTO(salvo);
     }
 
+    // O CacheEvict é usado para limpar o cache do carrinho do cliente após uma modificação
+    @CacheEvict(value = "carrinhos", key = "#clienteId()")
     @Transactional
     public void removerProduto(Long clienteId, Long produtoId) {
         Carrinho carrinho = carrinhoRepository.findByClienteId(clienteId)
@@ -88,6 +97,7 @@ public class CarrinhoService {
         carrinhoRepository.save(carrinho);
     }
 
+    @Cacheable(value = "carrinhos", key = "#clienteId")
     @Transactional(readOnly = true)
     public CarrinhoResponseDTO buscarPorCliente(Long clienteId) {
         Carrinho carrinho = carrinhoRepository.findByClienteId(clienteId)

@@ -3,6 +3,9 @@ package br.ifg.urt.carrinho_api.controller;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.data.web.PagedResourcesAssembler;
+import org.springframework.hateoas.EntityModel;
+import org.springframework.hateoas.PagedModel;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +13,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import br.ifg.urt.carrinho_api.dto.produto.ProdutoRequestDTO;
+import br.ifg.urt.carrinho_api.assembler.ProdutoModelAssembler;
 import br.ifg.urt.carrinho_api.dto.produto.ProdutoEstoqueResponseDTO;
 import br.ifg.urt.carrinho_api.dto.produto.ProdutoInventarioDTO;
 import br.ifg.urt.carrinho_api.dto.produto.ProdutoResponseDTO;
@@ -33,9 +37,15 @@ import jakarta.validation.constraints.NotNull;
 public class ProdutoController {
 
     private final ProdutoService service;
+    private final ProdutoModelAssembler assembler;
+    private final PagedResourcesAssembler<ProdutoResponseDTO> pagedAssembler;
 
-    public ProdutoController(ProdutoService service) {
+    public ProdutoController(ProdutoService service,
+                             ProdutoModelAssembler assembler,
+                             PagedResourcesAssembler<ProdutoResponseDTO> pagedAssembler) {
         this.service = service;
+        this.assembler = assembler;
+        this.pagedAssembler = pagedAssembler;
     }
 
 
@@ -52,15 +62,16 @@ public class ProdutoController {
             )
         }
     )
-    public ResponseEntity<Page<ProdutoResponseDTO>> buscarTodosPorNome(
-            @Parameter(
-                description = "Filtro por nome do produto (busca parcial, ignorando maiúsculas/minúsculas)",
-                example = "mouse"
-            )
+    public ResponseEntity<PagedModel<EntityModel<ProdutoResponseDTO>>> buscarTodosPorNome(
             @RequestParam(required = false) String nome,
             @PageableDefault(size = 10, sort = "nome") Pageable pageable) {
+        // Busca dados
+        Page<ProdutoResponseDTO> page = service.findAll(nome, pageable);
+        // Converte para HATEOAS
+        PagedModel<EntityModel<ProdutoResponseDTO>> model =
+                pagedAssembler.toModel(page, assembler::toModel);
 
-        return ResponseEntity.ok(service.findAll(nome, pageable));
+        return ResponseEntity.ok(model);
     }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)

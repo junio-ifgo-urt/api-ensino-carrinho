@@ -25,6 +25,7 @@ public interface ProdutoMapper {
     @Mapping(source = "preco.valor", target = "valor")
     @Mapping(source = "preco.moeda", target = "moeda")
     @Mapping(target = "precoFormatado", expression = "java(produto.getPreco().getFormatado())")
+    @Mapping(source = "estoque", target = "estoque")
     ProdutoResponseDTO toResponseDTO(Produto produto);
 
     // Mapeamento de Request DTO para Entidade (com VO)

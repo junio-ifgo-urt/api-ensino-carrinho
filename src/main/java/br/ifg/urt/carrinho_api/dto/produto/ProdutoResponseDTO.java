@@ -5,7 +5,8 @@ public record ProdutoResponseDTO(
     String nome, 
     Double valor,      // Extraído do VO
     String moeda,      // Extraído do VO
-    String precoFormatado // Novo campo útil vindo da lógica do VO
+    String precoFormatado, // Novo campo útil vindo da lógica do VO
+    Integer estoque 
 ) {
     // Zero métodos estáticos aqui! 
     // O mapeamento é responsabilidade do Mapper, 

@@ -5,6 +5,7 @@ import java.util.List;
 
 public record CarrinhoResponseDTO(
     Long id,
+    Long clienteId,
     String clienteNome, // Verifique se este campo está assim
     LocalDateTime dataCriacao,
     List<ItemCarrinhoResponseDTO> itens,
